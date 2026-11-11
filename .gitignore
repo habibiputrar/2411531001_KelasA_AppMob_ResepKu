@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local screenshots, report exports, and testing evidence
+/screenshots/
