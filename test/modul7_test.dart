@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/data/dummy_recipes.dart';
@@ -37,7 +38,10 @@ void main() {
     tester,
   ) async {
     await pumpResepKu(tester);
-    expect(tester.widget<ListView>(find.byType(ListView).last).semanticChildCount, dummyRecipes.length);
+    expect(
+      tester.widget<ListView>(find.byType(ListView).last).semanticChildCount,
+      dummyRecipes.length,
+    );
     expect(find.byType(RecipeImage).evaluate().length, greaterThan(0));
     expect(find.text('$kNim • $kNama'), findsOneWidget);
     final context = tester.element(find.byType(RecipeTile).first);
@@ -117,16 +121,30 @@ void main() {
       await tester.tap(find.text('Chicken Alfredo Pasta'));
       await tester.pumpAndSettle();
       expect(find.byType(DetailPage), findsOneWidget);
-      final image = tester.widget<RecipeImage>(find.byType(RecipeImage).last);
-      expect(image.url, dummyRecipes[3].image);
-      expect(image.cacheWidth, isNull);
+      final image = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+      expect(image.imageUrl, dummyRecipes[3].image);
+      expect(image.placeholder, isNotNull);
+      expect(image.errorWidget, isNotNull);
       expect(
         find.ancestor(
-          of: find.byType(RecipeImage).last,
-          matching: find.byType(AspectRatio),
+          of: find.byType(CachedNetworkImage),
+          matching: find.byType(FlexibleSpaceBar),
         ),
         findsOneWidget,
       );
+      final appBar = tester.widget<SliverAppBar>(find.byType(SliverAppBar));
+      expect(appBar.pinned, isTrue);
+      expect(appBar.expandedHeight, 260);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSize(find.byType(FlexibleSpaceBar)).height,
+        closeTo(kToolbarHeight, 0.1),
+      );
+      expect(find.byType(BackButton), findsOneWidget);
+      expect(find.byTooltip('Tambah ke favorit'), findsOneWidget);
       expect(find.text('$kNim • $kNama'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
