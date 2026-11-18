@@ -1,8 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:resepku/data/dummy_recipes.dart';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:resepku/services/recipe_service.dart';
+
 import 'package:resepku/main.dart';
 import 'package:resepku/pages/detail_page.dart';
 import 'package:resepku/providers/favorite_provider.dart';
@@ -12,6 +18,8 @@ import 'package:resepku/widgets/recipe_grid_card.dart';
 import 'package:resepku/widgets/recipe_image.dart';
 import 'package:resepku/widgets/recipe_tile.dart';
 
+import 'recipe_fixtures.dart';
+
 // Widget tests use Flutter's HTTP 400 stub, never the real recipe CDN.
 // Successful image downloads and airplane mode still require a device test.
 Future<FavoriteProvider> pumpResepKu(WidgetTester tester) async {
@@ -20,10 +28,38 @@ Future<FavoriteProvider> pumpResepKu(WidgetTester tester) async {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final favorites = FavoriteProvider();
+  final service = RecipeService(
+    client: MockClient((_) async {
+      return http.Response(
+        jsonEncode({
+          'recipes': [
+            for (final recipe in dummyRecipes)
+              {
+                'id': recipe.id,
+                'name': recipe.name,
+                'cuisine': recipe.cuisine,
+                'difficulty': recipe.difficulty,
+                'prepTimeMinutes': recipe.prepTimeMinutes,
+                'cookTimeMinutes': recipe.cookTimeMinutes,
+                'servings': recipe.servings,
+                'caloriesPerServing': recipe.caloriesPerServing,
+                'rating': recipe.rating,
+                'image': recipe.image,
+                'ingredients': recipe.ingredients,
+              },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    }),
+  );
+  addTearDown(service.close);
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: favorites),
+        Provider<RecipeService>.value(value: service),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const ResepKuApp(),
@@ -43,7 +79,7 @@ void main() {
       dummyRecipes.length,
     );
     expect(find.byType(RecipeImage).evaluate().length, greaterThan(0));
-    expect(find.text('$kNim • $kNama'), findsOneWidget);
+    expect(find.text('$kNim — $kNama'), findsOneWidget);
     final context = tester.element(find.byType(RecipeTile).first);
     expect(Theme.of(context).textTheme.bodyMedium!.fontFamily, 'Poppins');
     expect(
@@ -145,7 +181,7 @@ void main() {
       );
       expect(find.byType(BackButton), findsOneWidget);
       expect(find.byTooltip('Tambah ke favorit'), findsOneWidget);
-      expect(find.text('$kNim • $kNama'), findsOneWidget);
+      expect(find.text('$kNim — $kNama'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ChoiceChip, 'Semua'));
@@ -213,7 +249,7 @@ void main() {
     final theme = Theme.of(tester.element(find.byType(RecipeTile).first));
     expect(theme.brightness, Brightness.dark);
     expect(theme.textTheme.bodyMedium!.fontFamily, 'Poppins');
-    expect(find.text('$kNim • $kNama'), findsOneWidget);
+    expect(find.text('$kNim — $kNama'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

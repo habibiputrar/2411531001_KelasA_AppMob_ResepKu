@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:resepku/pages/home_page.dart';
 import 'package:resepku/providers/favorite_provider.dart';
 import 'package:resepku/providers/theme_provider.dart';
+import 'package:resepku/services/recipe_service.dart';
 import 'package:resepku/widgets/identity_footer.dart';
 
 void main() {
@@ -11,6 +12,10 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (context) => FavoriteProvider()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        Provider<RecipeService>(
+          create: (_) => RecipeService(),
+          dispose: (_, service) => service.close(),
+        ),
       ],
       child: const ResepKuApp(),
     ),
