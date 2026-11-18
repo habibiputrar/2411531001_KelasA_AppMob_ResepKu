@@ -3,6 +3,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/models/recipe.dart';
 import 'package:resepku/providers/favorite_provider.dart';
+import 'package:resepku/services/recipe_service.dart';
+import 'package:resepku/widgets/recipe_name_dialog.dart';
+
+enum _RecipeAction { rename, delete }
 
 class DetailPage extends StatefulWidget {
   const DetailPage({super.key, required this.recipe});
@@ -14,6 +18,7 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
+  bool _mutating = false;
   late int _servings; // state lokal: hanya halaman ini yang butuh
 
   @override
@@ -30,6 +35,79 @@ class _DetailPageState extends State<DetailPage> {
     if (_servings > 1) {
       setState(() => _servings--);
     }
+  }
+
+  Future<void> _rename() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => RecipeNameDialog(name: widget.recipe.name),
+    );
+    if (!mounted || name == null) return;
+
+    setState(() => _mutating = true);
+    try {
+      final updated = await context.read<RecipeService>().updateRecipe(
+        widget.recipe.id,
+        name,
+      );
+      if (!mounted) return;
+      _showMessage(
+        'Nama dari server: "${updated.name}". Perubahan disimulasikan.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage('Gagal mengubah nama. $error');
+    } finally {
+      if (mounted) setState(() => _mutating = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus resep?'),
+        content: Text(
+          'Hapus "${widget.recipe.name}" melalui simulasi DummyJSON?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+
+    setState(() => _mutating = true);
+    try {
+      final deleted = await context.read<RecipeService>().deleteRecipe(
+        widget.recipe.id,
+      );
+      if (!mounted) return;
+      if (!deleted) {
+        _showMessage('Server tidak mengonfirmasi penghapusan resep.');
+        return;
+      }
+      _showMessage('"${widget.recipe.name}" dihapus dalam simulasi DummyJSON.');
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage('Gagal menghapus resep. $error');
+    } finally {
+      if (mounted) setState(() => _mutating = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -65,11 +143,33 @@ class _DetailPageState extends State<DetailPage> {
                 onPressed: () =>
                     context.read<FavoriteProvider>().toggle(recipe),
               ),
+              PopupMenuButton<_RecipeAction>(
+                tooltip: 'Aksi resep',
+                enabled: !_mutating,
+                style: IconButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                ),
+                onSelected: (action) => switch (action) {
+                  _RecipeAction.rename => _rename(),
+                  _RecipeAction.delete => _delete(),
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: _RecipeAction.rename,
+                    child: Text('Ubah nama'),
+                  ),
+                  PopupMenuItem(
+                    value: _RecipeAction.delete,
+                    child: Text('Hapus'),
+                  ),
+                ],
+              ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsetsDirectional.only(
                 start: 56,
-                end: 56,
+                end: 104,
                 bottom: 16,
               ),
               title: Text(
@@ -170,6 +270,22 @@ class _DetailPageState extends State<DetailPage> {
               ),
             ),
           ),
+          if (recipe.instructions.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                child: Text('Langkah', style: textTheme.titleLarge),
+              ),
+            ),
+          SliverList.builder(
+            itemCount: recipe.instructions.length,
+            itemBuilder: (context, index) => ListTile(
+              dense: true,
+              leading: CircleAvatar(radius: 12, child: Text('${index + 1}')),
+              title: Text(recipe.instructions[index]),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
           SliverLayoutBuilder(
             builder: (context, constraints) {
               // Resep pendek juga harus bisa menggulir header hingga mengecil.
