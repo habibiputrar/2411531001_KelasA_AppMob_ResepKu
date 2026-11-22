@@ -49,3 +49,6 @@ app.*.map.json
 
 # Local screenshots, report exports, and testing evidence
 /screenshots/
+/LAPORAN_MODUL_8.md
+/laporan_praktikum_8.html
+/dokumentasi_praktikum_08/
