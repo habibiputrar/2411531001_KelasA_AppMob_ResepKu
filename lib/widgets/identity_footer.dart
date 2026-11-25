@@ -29,7 +29,7 @@ class IdentityFooter extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Text(
-                  '$kNim — $kNama',
+                  '$kNim • $kNama',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),

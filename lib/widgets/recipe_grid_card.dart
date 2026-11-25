@@ -1,3 +1,4 @@
+import 'package:resepku/widgets/storage_action.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/models/recipe.dart';
@@ -41,8 +42,10 @@ class RecipeGridCard extends StatelessWidget {
                         isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: isFavorite ? Colors.red : null,
                       ),
-                      onPressed: () =>
-                          context.read<FavoriteProvider>().toggle(recipe),
+                      onPressed: () => storageAction(
+                        context,
+                        () => context.read<FavoriteProvider>().toggle(recipe),
+                      ),
                     ),
                   ),
                 ],

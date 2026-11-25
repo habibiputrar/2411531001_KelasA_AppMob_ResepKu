@@ -1,3 +1,4 @@
+import 'package:resepku/widgets/storage_action.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/models/recipe.dart';
@@ -35,7 +36,10 @@ class RecipeTile extends StatelessWidget {
           color: isFavorite ? Colors.red : null,
         ),
         // read: di dalam callback cukup "membaca", tidak perlu listen
-        onPressed: () => context.read<FavoriteProvider>().toggle(recipe),
+        onPressed: () => storageAction(
+          context,
+          () => context.read<FavoriteProvider>().toggle(recipe),
+        ),
       ),
       onTap: () => Navigator.push(
         context,

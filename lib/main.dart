@@ -2,16 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/pages/home_page.dart';
 import 'package:resepku/providers/favorite_provider.dart';
-import 'package:resepku/providers/theme_provider.dart';
+import 'package:resepku/providers/settings_provider.dart';
+import 'package:resepku/data/favorite_database.dart';
 import 'package:resepku/services/recipe_service.dart';
 import 'package:resepku/widgets/identity_footer.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final settings = SettingsProvider();
+  final favorites = FavoriteProvider(FavoriteDatabase());
+  await Future.wait([settings.load(), favorites.load()]);
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => FavoriteProvider()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: favorites),
+        ChangeNotifierProvider.value(value: settings),
         Provider<RecipeService>(
           create: (_) => RecipeService(),
           dispose: (_, service) => service.close(),
@@ -27,7 +32,7 @@ class ResepKuApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = context.watch<ThemeProvider>().themeMode;
+    final themeMode = context.watch<SettingsProvider>().themeMode;
 
     return MaterialApp(
       title: 'ResepKu',

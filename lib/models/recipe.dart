@@ -29,6 +29,21 @@ class Recipe {
 
   int get totalTimeMinutes => prepTimeMinutes + cookTimeMinutes;
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'cuisine': cuisine,
+    'difficulty': difficulty,
+    'prepTimeMinutes': prepTimeMinutes,
+    'cookTimeMinutes': cookTimeMinutes,
+    'servings': servings,
+    'caloriesPerServing': caloriesPerServing,
+    'rating': rating,
+    'image': image,
+    'ingredients': ingredients,
+    'instructions': instructions,
+  };
+
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
       id: json['id'] as int,

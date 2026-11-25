@@ -1,3 +1,4 @@
+import 'package:resepku/widgets/storage_action.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -140,8 +141,10 @@ class _DetailPageState extends State<DetailPage> {
                   isFavorite ? Icons.favorite : Icons.favorite_border,
                   color: isFavorite ? Colors.red : null,
                 ),
-                onPressed: () =>
-                    context.read<FavoriteProvider>().toggle(recipe),
+                onPressed: () => storageAction(
+                  context,
+                  () => context.read<FavoriteProvider>().toggle(recipe),
+                ),
               ),
               PopupMenuButton<_RecipeAction>(
                 tooltip: 'Aksi resep',

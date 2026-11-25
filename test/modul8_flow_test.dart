@@ -8,7 +8,12 @@ import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/main.dart';
 import 'package:resepku/providers/favorite_provider.dart';
-import 'package:resepku/providers/theme_provider.dart';
+import 'package:resepku/providers/settings_provider.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import 'fakes.dart';
+
 import 'package:resepku/services/recipe_service.dart';
 
 const _recipe = {
@@ -24,7 +29,7 @@ Future<FavoriteProvider> _launch(
   WidgetTester tester,
   Future<http.Response> Function(http.Request) handler,
 ) async {
-  final favorites = FavoriteProvider();
+  final favorites = FavoriteProvider(MemoryFavoriteStore());
   final service = RecipeService(client: MockClient(handler));
   addTearDown(service.close);
   addTearDown(favorites.dispose);
@@ -33,7 +38,7 @@ Future<FavoriteProvider> _launch(
       providers: [
         Provider<RecipeService>.value(value: service),
         ChangeNotifierProvider.value(value: favorites),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: const ResepKuApp(),
     ),
@@ -42,6 +47,10 @@ Future<FavoriteProvider> _launch(
 }
 
 void main() {
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
   testWidgets(
     'Loading, offline retry, refresh and grid preserve two favorites',
     (tester) async {

@@ -1,3 +1,5 @@
+import 'package:resepku/providers/settings_provider.dart';
+import 'package:resepku/widgets/storage_action.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:resepku/pages/add_recipe_page.dart';
@@ -18,7 +20,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _isGrid = false;
   String? _cuisine;
 
   late Future<List<Recipe>> _recipesFuture;
@@ -66,13 +67,17 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final isGrid = settings.isGrid;
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
             Image.asset('assets/images/logo.png', height: 32),
             const SizedBox(width: 8),
-            const Flexible(child: Text('ResepKu')),
+            const Flexible(
+              child: Text('ResepKu', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         actions: [
@@ -85,9 +90,10 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           IconButton(
-            tooltip: _isGrid ? 'Tampilan list' : 'Tampilan grid',
-            icon: Icon(_isGrid ? Icons.view_list : Icons.grid_view),
-            onPressed: () => setState(() => _isGrid = !_isGrid),
+            tooltip: isGrid ? 'Tampilan list' : 'Tampilan grid',
+            icon: Icon(isGrid ? Icons.view_list : Icons.grid_view),
+            onPressed: () =>
+                storageAction(context, () => settings.setGrid(!isGrid)),
           ),
           const FavoriteBadgeButton(),
           IconButton(
@@ -153,7 +159,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   )
-                : _isGrid
+                : context.watch<SettingsProvider>().isGrid
                 ? _buildGrid(filtered)
                 : _buildList(filtered),
           ),

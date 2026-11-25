@@ -12,7 +12,12 @@ import 'package:resepku/services/recipe_service.dart';
 import 'package:resepku/main.dart';
 import 'package:resepku/pages/detail_page.dart';
 import 'package:resepku/providers/favorite_provider.dart';
-import 'package:resepku/providers/theme_provider.dart';
+import 'package:resepku/providers/settings_provider.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import 'fakes.dart';
+
 import 'package:resepku/widgets/identity_footer.dart';
 import 'package:resepku/widgets/recipe_grid_card.dart';
 import 'package:resepku/widgets/recipe_image.dart';
@@ -27,7 +32,7 @@ Future<FavoriteProvider> pumpResepKu(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final favorites = FavoriteProvider();
+  final favorites = FavoriteProvider(MemoryFavoriteStore());
   final service = RecipeService(
     client: MockClient((_) async {
       return http.Response(
@@ -60,7 +65,7 @@ Future<FavoriteProvider> pumpResepKu(WidgetTester tester) async {
       providers: [
         ChangeNotifierProvider.value(value: favorites),
         Provider<RecipeService>.value(value: service),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: const ResepKuApp(),
     ),
@@ -70,6 +75,10 @@ Future<FavoriteProvider> pumpResepKu(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
   testWidgets('Home registers Poppins, logo, thumbnails and identity footer', (
     tester,
   ) async {
@@ -79,7 +88,7 @@ void main() {
       dummyRecipes.length,
     );
     expect(find.byType(RecipeImage).evaluate().length, greaterThan(0));
-    expect(find.text('$kNim — $kNama'), findsOneWidget);
+    expect(find.text('$kNim • $kNama'), findsOneWidget);
     final context = tester.element(find.byType(RecipeTile).first);
     expect(Theme.of(context).textTheme.bodyMedium!.fontFamily, 'Poppins');
     expect(
@@ -181,7 +190,7 @@ void main() {
       );
       expect(find.byType(BackButton), findsOneWidget);
       expect(find.byTooltip('Tambah ke favorit'), findsOneWidget);
-      expect(find.text('$kNim — $kNama'), findsOneWidget);
+      expect(find.text('$kNim • $kNama'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ChoiceChip, 'Semua'));
@@ -198,8 +207,8 @@ void main() {
     'Favorites have separators and stable swipe removal with SnackBar',
     (tester) async {
       final favorites = await pumpResepKu(tester);
-      favorites.toggle(dummyRecipes[0]);
-      favorites.toggle(dummyRecipes[1]);
+      await favorites.toggle(dummyRecipes[0]);
+      await favorites.toggle(dummyRecipes[1]);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Favorit saya'));
       await tester.pumpAndSettle();
@@ -238,10 +247,12 @@ void main() {
     await pumpResepKu(tester);
     await tester.tap(find.byTooltip('Pengaturan'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(SwitchListTile));
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Mode gelap'));
     await tester.pumpAndSettle();
     expect(
-      Theme.of(tester.element(find.byType(SwitchListTile))).brightness,
+      Theme.of(
+        tester.element(find.widgetWithText(SwitchListTile, 'Mode gelap')),
+      ).brightness,
       Brightness.dark,
     );
     await tester.pageBack();
@@ -249,7 +260,7 @@ void main() {
     final theme = Theme.of(tester.element(find.byType(RecipeTile).first));
     expect(theme.brightness, Brightness.dark);
     expect(theme.textTheme.bodyMedium!.fontFamily, 'Poppins');
-    expect(find.text('$kNim — $kNama'), findsOneWidget);
+    expect(find.text('$kNim • $kNama'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
